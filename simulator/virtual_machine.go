@@ -86,12 +86,26 @@ func NewVirtualMachine(parent types.ManagedObjectReference, spec *types.VirtualM
 
 	dsPath := path.Dir(spec.Files.VmPathName)
 
+	var vmUUID string
+	var vmInstanceID string
+
+	if spec.Uuid == "" {
+		vmUUID = uuid.New().String()
+	} else {
+		vmUUID = spec.Uuid
+	}
+	if spec.InstanceUuid == "" {
+		vmInstanceID = uuid.New().String()
+	} else {
+		vmInstanceID = spec.InstanceUuid
+	}
+
 	defaults := types.VirtualMachineConfigSpec{
 		NumCPUs:           1,
 		NumCoresPerSocket: 1,
 		MemoryMB:          32,
-		Uuid:              uuid.New().String(),
-		InstanceUuid:      uuid.New().String(),
+		Uuid:              vmUUID,
+		InstanceUuid:      vmInstanceID,
 		Version:           "vmx-11",
 		Files: &types.VirtualMachineFileInfo{
 			SnapshotDirectory: dsPath,
@@ -910,8 +924,10 @@ func (vm *VirtualMachine) CloneVMTask(ctx *Context, req *types.CloneVM_Task) soa
 
 	task := CreateTask(vm, "cloneVm", func(t *Task) (types.AnyType, types.BaseMethodFault) {
 		config := types.VirtualMachineConfigSpec{
-			Name:    req.Name,
-			GuestId: vm.Config.GuestId,
+			Name:         req.Name,
+			Uuid:         req.Spec.Config.Uuid,
+			InstanceUuid: req.Spec.Config.InstanceUuid,
+			GuestId:      vm.Config.GuestId,
 			Files: &types.VirtualMachineFileInfo{
 				VmPathName: strings.Replace(vm.Config.Files.VmPathName, vm.Name, req.Name, -1),
 			},
